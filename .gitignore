@@ -1,0 +1,25 @@
+# Python virtual envs
+.venv/
+**/.venv/
+venv/
+**/venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Map raw data (don’t upload huge test files)
+map/*.txt
+map/*.png
+
+# Build artifacts
+serial/astar
+*.o
+*.out
+
+# IDE/editor stuff (optional)
+.vscode/
+.idea/
+
+# macOS junk (if any)
+.DS_Store
