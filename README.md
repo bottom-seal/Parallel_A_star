@@ -73,3 +73,16 @@ expanded nodes are more likely to remain within the same tile region
 and therefore be owned by the same worker. 
 
 The tradeoff between load balancing and communication proved to be benefitial in the experiment.
+### Thread Scheduling Strategy
+When a thread’s open set becomes empty (meaning all its nodes have
+been explored or are waiting for updates), it must decide how to wait
+for more work. We evaluated two strategies:<br>
+
+```pthread cond timedwait()```: Threads sleep on a condition variable
+with timeout. This proved too costly due to the overhead of the timed
+wait system call.<br>
+```sched yield()```: Threads yield their time slice to other threads. This
+provides the best balance - minimal overhead while allowing productive threads to continue work.<br>
+
+The sched yield() approach allows idle threads to quickly wake up
+when new messages arrive (sent by other threads) without the heavyweight system call overhead of condition variables.
