@@ -2,6 +2,7 @@
 The project is for final project of NYCU parallel programming 2025.<br>
 This is an implementation of Hashed Distributed A* with implementation tuning.<br>
 (https://github.com/jinnaiyuu/Hash-Distributed-Astar)<br>
+A* algorithm is inherently difficult to parallelize as each iteration depends on the result of the last
 <img width="864" height="387" alt="image" src="https://github.com/user-attachments/assets/c16d56a3-e5b1-4f72-9989-ee60ee205c73" />
 
 ## Proposed Solution
@@ -86,3 +87,73 @@ provides the best balance - minimal overhead while allowing productive threads t
 
 The sched yield() approach allows idle threads to quickly wake up
 when new messages arrive (sent by other threads) without the heavyweight system call overhead of condition variables.
+
+## Experimental Methodology
+###  Test Environment
+• Processor: Intel(R) Core(TM) i5-14400F, 10 cores 16 threads<br>
+• Memory: 32GB<br>
+###  Input Data Sets
+We generated maze datasets with varying sizes to evaluate scalability,  
+ranging from 1600<sup>2</sup> to 12800<sup>2</sup> cells with increments of 1600  
+(1600<sup>2</sup>, 3200<sup>2</sup>, 4800<sup>2</sup>, 6400<sup>2</sup>, 8000<sup>2</sup>, 9600<sup>2</sup>, 11200<sup>2</sup>, and 12800<sup>2</sup>).
+
+Maze generation ensures solvability with a guaranteed path from
+start to goal. The maze complexity is controlled to provide meaningful pathfinding challenges while avoiding trivial straight-line solutions. Additionally, we enforce that multiple distinct paths exist
+between start and goal, so the solver must choose among alternatives,
+this helps validate correctness.
+###  Performance Metrics
+• Execution Time: Total wall-clock time from start to goal discovery<br>
+• Speedup: Ratio of sequential execution time to parallel execution time<br>
+The sequential A* baseline is used fir speedup comparison
+
+## Experimental Results
+### Speed up with different number of threads on and 6400<sup>2</sup> and 12800<sup>2</sup>
+<img width="925" height="509" alt="image" src="https://github.com/user-attachments/assets/ce9a4943-1c82-4a6e-8cba-27ea0100a688" />
+<img width="925" height="509" alt="image" src="https://github.com/user-attachments/assets/9cb472a9-bf0f-49e2-96a2-c3d5f453da69" />
+### Performance Breakdown Analysis
+<img width="933" height="462" alt="image" src="https://github.com/user-attachments/assets/9e5505b2-54a4-4030-bd5f-394d109e8275" />
+Performance breakdown for maze size 6400<sup>2</sup>
+showing overhead, work, and merge time across different thread counts. The dashed line indicates sequential execution time.
+<img width="932" height="462" alt="image" src="https://github.com/user-attachments/assets/b29b126a-ec28-4f1c-b1d4-b63d5243247a" />
+Performance breakdown for maze size 12800<sup>2</sup>
+###  Scalability Across Maze Sizes
+<img width="1546" height="766" alt="image" src="https://github.com/user-attachments/assets/02eeaa21-f1cf-4e5d-890e-f26cc24ec358" />
+Speedup comparison between sequential A* and 16-thread
+HDA* across different maze sizes. Pink bars show speedup percentage (right axis), while lines show absolute execution times (left axis).
+<img width="1546" height="766" alt="image" src="https://github.com/user-attachments/assets/c22f2e7f-82dd-4f6d-9879-23f5dfaedbde" />
+Speedup comparison using local node maps with sleepbased synchronization. The implementation shows negative speedup
+(slowdown) for small mazes and limited improvement for larger mazes.
+
+## Discussion
+### Performance
+Our experiments demonstrate that speedup scales positively with
+maze size, consistent with Amdahl’s Law predictions. For small
+mazes (1600<sup>2</sup>
+), the parallel implementation performs comparably to
+the single-threaded version, as parallelization overhead offsets the
+benefits of multi-threading. However, when the maze size increases
+to 12800<sup>2</sup>
+, we observe significant acceleration, with the 16-thread
+configuration achieving substantial speedup 
+
+This behavior aligns with Amdahl’s Law expectations: as problem
+size grows, the total amount of search work increases, so overheads
+(even though they also grow)—such as map-sized initialization and
+communication overhead—become a smaller fraction of the overall
+runtime. In small problems, these costs take up a disproportionate
+share and dominate performance; in larger problems, the increased
+computation amortizes them, resulting in better overall speedup and
+making our approach more suitable for large-scale pathfinding tasks.
+###  Correctness
+We verified correctness by comparing path lengths between sequential and parallel implementations across all test cases. The parallel
+version consistently found a valid path whenever one exists, and its
+path length closely matched the sequential baseline. While it did not
+always return the exact optimal path length, the deviation was small,
+indicating that our optimizations and pruning strategies preserve solution quality even when strict A* optimality is not guaranteed
+
+
+
+
+
+
+
