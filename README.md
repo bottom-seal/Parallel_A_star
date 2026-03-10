@@ -40,3 +40,20 @@ Below is the implementation algorithm
 22:     end if
 23: end while
 ```
+## Implementation details and deviation
+### Synchronization and Communication
+The global node map stores the complete state of all nodes (visited status, parent pointers, g and f values) and is shared across all
+threads. While this introduces potential false sharing, our experiments demonstrate that the benefit of avoiding local node map parsing
+overhead outweighs the cache coherence costs.
+
+The most challenging aspect of the implementation is managing interthread communication efficiently. Our initial implementation used
+immediate mutex-protected message passing, which resulted in severe performance degradation as thread count increased. The key
+insight was to reduce synchronization frequency through buffering.<br>
+Each thread maintains:<br>
+• A private outbox buffer (per-target-thread) for batching messages<br>
+• An inbox queue protected by a single mutex for receiving messages<br>
+Messages are sent in batches when the outbox buffer fills, reducing
+mutex contention by orders of magnitude compared to per-message
+locking. The receiving thread processes its entire inbox in one critical
+section, further minimizing lock hold time.
+
