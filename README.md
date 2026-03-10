@@ -153,8 +153,17 @@ path length closely matched the sequential baseline. While it did not
 always return the exact optimal path length, the deviation was small,
 indicating that our optimizations and pruning strategies preserve solution quality even when strict A* optimality is not guaranteed
 
-
-
+## Using the code
+The code is a mess, I have only pushed necessary code to reproduce the test result, including map generation, serial A* and current best implementation of HDA*.
+### generate a map
+```
+```
+### run the serial A*
+```
+```
+### run the HDA*
+```
+```
 
 
 
