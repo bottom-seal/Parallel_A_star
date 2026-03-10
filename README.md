@@ -110,12 +110,14 @@ The sequential A* baseline is used fir speedup comparison
 ### Speed up with different number of threads on and 6400<sup>2</sup> and 12800<sup>2</sup>
 <img width="925" height="509" alt="image" src="https://github.com/user-attachments/assets/ce9a4943-1c82-4a6e-8cba-27ea0100a688" />
 <img width="925" height="509" alt="image" src="https://github.com/user-attachments/assets/9cb472a9-bf0f-49e2-96a2-c3d5f453da69" />
+
 ### Performance Breakdown Analysis
 <img width="933" height="462" alt="image" src="https://github.com/user-attachments/assets/9e5505b2-54a4-4030-bd5f-394d109e8275" />
 Performance breakdown for maze size 6400<sup>2</sup>
 showing overhead, work, and merge time across different thread counts. The dashed line indicates sequential execution time.
 <img width="932" height="462" alt="image" src="https://github.com/user-attachments/assets/b29b126a-ec28-4f1c-b1d4-b63d5243247a" />
 Performance breakdown for maze size 12800<sup>2</sup>
+
 ###  Scalability Across Maze Sizes
 <img width="1546" height="766" alt="image" src="https://github.com/user-attachments/assets/02eeaa21-f1cf-4e5d-890e-f26cc24ec358" />
 Speedup comparison between sequential A* and 16-thread
