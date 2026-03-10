@@ -50,10 +50,26 @@ The most challenging aspect of the implementation is managing interthread commun
 immediate mutex-protected message passing, which resulted in severe performance degradation as thread count increased. The key
 insight was to reduce synchronization frequency through buffering.<br>
 Each thread maintains:<br>
+
 • A private outbox buffer (per-target-thread) for batching messages<br>
 • An inbox queue protected by a single mutex for receiving messages<br>
+
 Messages are sent in batches when the outbox buffer fills, reducing
 mutex contention by orders of magnitude compared to per-message
 locking. The receiving thread processes its entire inbox in one critical
 section, further minimizing lock hold time.
 
+### Work Partitioning Strategy
+The hash-based partitioning strategy provides several advantages over
+spatial decomposition approaches. By distributing nodes based on
+their index rather than their location, we ensure balanced workload
+distribution regardless of maze structure.
+
+However, such approach introduced another problem, whenever a new node is discovered, it likely belongs to another thread, which causes constant communication between threads and contention for lock. So we adopted applied a tiling-based spatial
+ownership scheme: we first partition the maze into fixed-size tiles,
+then assign tiles to workers so that each worker “owns” all nodes
+within its tiles. This reduces cross-worker communication because
+expanded nodes are more likely to remain within the same tile region
+and therefore be owned by the same worker. 
+
+The tradeoff between load balancing and communication proved to be benefitial in the experiment.
