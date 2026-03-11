@@ -8,7 +8,7 @@ struct AStarStateSoA {
     std::vector<float>   g;
     std::vector<float>   f;
     std::vector<int>     parent;
-    std::vector<uint8_t> state; // 0=unvisited,1=open,2=closed
+    std::vector<uint8_t> state;
 
     explicit AStarStateSoA(int N)
         : g(N, std::numeric_limits<float>::infinity()),
@@ -19,7 +19,6 @@ struct AStarStateSoA {
 
 using AStarState = AStarStateSoA;
 
-// accessors
 inline float get_g(const AStarState &s, int idx)       { return s.g[idx]; }
 inline void  set_g(AStarState &s, int idx, float v)    { s.g[idx] = v; }
 

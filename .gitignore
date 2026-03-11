@@ -1,25 +1,26 @@
-# Python virtual envs
+# Ignore ablation and pthread folders
+ablation_busy_waiting/
+ablation_false_sharing/
+ablation_no_buffer/
+pthread_hda/
+
+# Ignore everything in map except specific files
+map/*
+!map/gen_maze_map.py
+!map/clean.sh
+
+# Ignore virtual environments and caches
 .venv/
 **/.venv/
 venv/
 **/venv/
-
-# Python cache
 __pycache__/
+**/__pycache__/
 *.pyc
 
-# Map raw data (don’t upload huge test files)
-map/*.txt
-map/*.png
-
-# Build artifacts
-serial/astar
-*.o
-*.out
-
-# IDE/editor stuff (optional)
+# IDE/editor stuff
 .vscode/
 .idea/
 
-# macOS junk (if any)
+# macOS junk
 .DS_Store

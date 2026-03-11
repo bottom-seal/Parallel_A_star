@@ -1,26 +1,24 @@
 CXX = g++
-CXXFLAGS = -O3 -std=c++17 -I../include
+CXXFLAGS = -O3 -std=c++17 -I../include -pthread
 
-# Profiling (gprof) toggle: PROFILE=1 -> add -pg -g
 PROFILE ?= 0
 ifeq ($(PROFILE),1)
     CXXFLAGS += -pg -g
 endif
 
-# Default layout: soa (you can change to aos if you want)
 LAYOUT ?= soa
-
 ifeq ($(LAYOUT),aos)
     CXXFLAGS += -DUSE_AOS
 endif
-
 ifeq ($(LAYOUT),soa)
     CXXFLAGS += -DUSE_SOA
 endif
 
-TARGET = astar
+# Build the pthread-capable version, but choose thread count at runtime (-t / --threads)
+CXXFLAGS += -DPTHREAD_ASTAR
 
-SRCS = ../src/main.cpp astar.cpp
+TARGET = astar
+SRCS   = main.cpp astar.cpp
 
 all: $(TARGET)
 

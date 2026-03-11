@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt  # PNG output disabled
 import sys
 from typing import List, Tuple, Dict
 from collections import deque
@@ -9,15 +9,21 @@ from collections import deque
 # Basic helpers
 # ------------------------------------------------------------
 
-def is_power_of_two(n: int) -> bool:
-    return n > 0 and (n & (n - 1)) == 0
+def is_power_of_two_or_mult16(n: int) -> bool:
+    """Allow sizes that are power-of-two OR multiple of 16."""
+    return n > 0 and (((n & (n - 1)) == 0) or (n % 16 == 0))
 
 
 def visualize_map(grid: np.ndarray, out_path: str) -> None:
     """
-    Visualize a 0/1 map (square, power-of-two side) and save as PNG.
+    Visualize a 0/1 map (square) and save as PNG.
     1 = wall (black), 0 = path (white)
+
+    NOTE: PNG output is disabled in CLI below; keep this if you want it later.
     """
+    # Lazy import so matplotlib isn't required unless you call this function.
+    import matplotlib.pyplot as plt
+
     grid = np.array(grid, dtype=int)
 
     if grid.ndim != 2:
@@ -26,8 +32,10 @@ def visualize_map(grid: np.ndarray, out_path: str) -> None:
     h, w = grid.shape
     if h != w:
         raise ValueError(f"Map must be square, got {h}x{w}.")
-    if not is_power_of_two(h):
-        raise ValueError(f"Map size must be power of 2 (32, 64, 128, ...). Got {h}.")
+    if not is_power_of_two_or_mult16(h):
+        raise ValueError(
+            f"Map size must be power of 2 (32, 64, 128, ...) or multiple of 16. Got {h}."
+        )
     if not np.all(np.isin(grid, [0, 1])):
         raise ValueError("Map must contain only 0 and 1.")
 
@@ -54,20 +62,17 @@ def generate_perfect_maze_cells(
     Generate a perfect maze (spanning tree) on a cell grid embedded
     inside an NxN grid.
 
-    - N = size (must be even power of two, e.g., 32, 64, 128, ...)
+    - N = size (must be power-of-two OR multiple of 16)
     - We treat positions with odd coordinates as cell centers:
         cell (rc, cc) -> grid coords (2*rc+1, 2*cc+1)
       with rc,cc in [0, H-1], where H = (N-1)//2.
-
-    - Walls between adjacent cells correspond to grid positions between
-      those centers (even coordinates in one axis).
 
     Returns:
       grid : NxN array with 1=wall, 0=carved paths (maze corridors)
       H, W : number of cells in each dimension (H == W)
     """
-    if not is_power_of_two(size):
-        raise ValueError("Size must be power of 2 (32, 64, 128, ...).")
+    if not is_power_of_two_or_mult16(size):
+        raise ValueError("Size must be power of 2 (32, 64, 128, ...) or multiple of 16.")
     if size < 8:
         raise ValueError("Use size >= 8 to make sense.")
 
@@ -83,7 +88,7 @@ def generate_perfect_maze_cells(
     # DFS on cell grid
     visited = np.zeros((H, W), dtype=bool)
 
-    # We want start near your logical start point at (1, N-1).
+    # Start near your logical start point at (1, N-1).
     # The interior cell closest to that is top-right cell:
     start_cell = (0, W - 1)  # cell indices
     stack: List[Tuple[int, int]] = [start_cell]
@@ -95,7 +100,7 @@ def generate_perfect_maze_cells(
     grid[sr, sc] = 0
 
     def cell_neighbors(rc: int, cc: int) -> List[Tuple[int, int]]:
-        out = []
+        out: List[Tuple[int, int]] = []
         if rc > 0:
             out.append((rc - 1, cc))
         if rc < H - 1:
@@ -115,11 +120,12 @@ def generate_perfect_maze_cells(
         for nrc, ncc in neighbors:
             if not visited[nrc, ncc]:
                 visited[nrc, ncc] = True
+
                 # carve wall between (rc,cc) and (nrc,ncc)
                 r1, c1 = 2 * rc + 1, 2 * cc + 1
                 r2, c2 = 2 * nrc + 1, 2 * ncc + 1
-
                 mr, mc = (r1 + r2) // 2, (c1 + c2) // 2  # wall coordinate
+
                 grid[mr, mc] = 0
                 grid[r2, c2] = 0
 
@@ -150,9 +156,6 @@ def build_cell_graph_from_grid(
     """
     graph: Dict[Tuple[int, int], List[Tuple[int, int]]] = {}
     N = grid.shape[0]
-
-    def in_cell_bounds(rc: int, cc: int) -> bool:
-        return 0 <= rc < H and 0 <= cc < W
 
     for rc in range(H):
         for cc in range(W):
@@ -190,24 +193,20 @@ def shortest_cell_path(
     goal_cell: Tuple[int, int],
 ) -> List[Tuple[int, int]]:
     """BFS shortest path on cell graph."""
-    q = deque()
-    q.append(start_cell)
+    q = deque([start_cell])
     visited = {start_cell}
     parent: Dict[Tuple[int, int], Tuple[int, int]] = {}
 
-    found = False
     while q:
         u = q.popleft()
         if u == goal_cell:
-            found = True
             break
         for v in graph[u]:
             if v not in visited:
                 visited.add(v)
                 parent[v] = u
                 q.append(v)
-
-    if not found:
+    else:
         raise RuntimeError("No path between start and goal in cell graph (should not happen).")
 
     path: List[Tuple[int, int]] = []
@@ -236,18 +235,13 @@ def add_extra_path_along_sg(
     an extra connection between two non-consecutive cells on the S->G
     cell path, if possible.
     """
-    # Map cell -> index along path
-    index_of: Dict[Tuple[int, int], int] = {
-        cell: idx for idx, cell in enumerate(cell_path)
-    }
-
+    index_of: Dict[Tuple[int, int], int] = {cell: idx for idx, cell in enumerate(cell_path)}
     N = grid.shape[0]
-    candidates = []
+    candidates: List[Tuple[int, int]] = []
 
     for idx, (rc, cc) in enumerate(cell_path):
         r_base, c_base = 2 * rc + 1, 2 * cc + 1
 
-        # Check all 4 neighbors in cell-space
         neighbors = [
             (rc - 1, cc, r_base - 1, c_base),  # up
             (rc + 1, cc, r_base + 1, c_base),  # down
@@ -263,11 +257,9 @@ def add_extra_path_along_sg(
                 continue
 
             j = index_of[neighbor_cell]
-            # We only care about neighbors that are NOT consecutive in path
             if abs(j - idx) <= 1:
                 continue
 
-            # Wall between them must still be closed to be a new connection
             if 0 <= mr < N and 0 <= mc < N and grid[mr, mc] == 1:
                 candidates.append((mr, mc))
 
@@ -275,7 +267,7 @@ def add_extra_path_along_sg(
         return
 
     mr, mc = candidates[int(rng.integers(low=0, high=len(candidates)))]
-    grid[mr, mc] = 0  # open this wall → creates a cycle along S->G
+    grid[mr, mc] = 0
 
 
 # ------------------------------------------------------------
@@ -291,23 +283,22 @@ def add_random_extra_loops(
 ) -> None:
     """
     Randomly open additional walls between neighboring cells to create
-    more cycles throughout the maze (not just along S->G).
+    more cycles throughout the maze.
     """
     N = grid.shape[0]
     if extra_loops <= 0:
         return
 
-    for _ in range(extra_loops * 5):  # a few tries per desired loop
+    for _ in range(extra_loops * 5):
         rc = int(rng.integers(low=0, high=H))
         cc = int(rng.integers(low=0, high=W))
 
         r_base, c_base = 2 * rc + 1, 2 * cc + 1
-
         directions = [
-            (rc - 1, cc, r_base - 1, c_base),  # up
-            (rc + 1, cc, r_base + 1, c_base),  # down
-            (rc, cc - 1, r_base, c_base - 1),  # left
-            (rc, cc + 1, r_base, c_base + 1),  # right
+            (rc - 1, cc, r_base - 1, c_base),
+            (rc + 1, cc, r_base + 1, c_base),
+            (rc, cc - 1, r_base, c_base - 1),
+            (rc, cc + 1, r_base, c_base + 1),
         ]
         rng.shuffle(directions)
 
@@ -335,51 +326,38 @@ def generate_maze_map(
     """
     Generate an "actual maze"-like map:
 
-      - Uses classical DFS maze generation on a grid of cells embedded
-        into the NxN array.
-      - Start = (1, size-1)  (top-right, 1 down)
-      - Goal  = (size-2, 0)  (bottom-left, 1 up)
-      - Ensures at least ONE extra path from start to goal by opening
-        a wall along the S->G shortest cell path.
-      - Optionally opens more random loops (extra_loops) to create
-        multiple paths and cycles.
+      - DFS perfect maze on embedded cell grid
+      - Start = (1, size-1)
+      - Goal  = (size-2, 0)
+      - Adds at least one extra S->G cycle
+      - Adds extra random loops
 
     Returns:
       grid : NxN array with 1 = wall, 0 = path.
     """
     N = size
-    if not is_power_of_two(N):
-        raise ValueError("Size must be power of 2 (32, 64, 128, ...).")
+    if not is_power_of_two_or_mult16(N):
+        raise ValueError("Size must be power of 2 (32, 64, 128, ...) or multiple of 16.")
 
     rng = np.random.default_rng(seed)
 
-    # 1) Perfect maze (tree) on cell grid
     grid, H, W = generate_perfect_maze_cells(N, seed=seed)
 
-    # 2) Build cell graph from carved corridors
     graph = build_cell_graph_from_grid(grid, H, W)
 
-    # 3) Define interior start & goal cells corresponding to your border S/G
-    #    S = (1, N-1) connects to cell (0, W-1) at (1, N-2)
-    #    G = (N-2, 0) connects to cell (H-1, 0) at (N-2, 1)
     start_cell = (0, W - 1)
     goal_cell = (H - 1, 0)
 
-    # 4) Shortest cell path (unique in perfect maze)
     cell_path = shortest_cell_path(graph, start_cell, goal_cell)
 
-    # 5) Ensure at least ONE extra connection along S->G
     add_extra_path_along_sg(grid, H, W, cell_path, rng)
-
-    # 6) Optional extra loops elsewhere
     add_random_extra_loops(grid, H, W, extra_loops=extra_loops, rng=rng)
 
-    # 7) Open actual start/goal border cells and connect to interior
-    #    Start: (1, N-1) <-> (1, N-2) (top-right interior cell)
+    # Start border opening
     grid[1, N - 1] = 0
     grid[1, N - 2] = 0
 
-    #    Goal: (N-2, 0) <-> (N-2, 1) (bottom-left interior cell)
+    # Goal border opening
     grid[N - 2, 0] = 0
     grid[N - 2, 1] = 0
 
@@ -394,16 +372,9 @@ if __name__ == "__main__":
     """
     Usage:
       python gen_maze_map.py
-          # size=64, seed=42, extra_loops=10
-
       python gen_maze_map.py 128
-          # size=128, seed=42, extra_loops=10
-
       python gen_maze_map.py 128 123
-          # size=128, seed=123, extra_loops=10
-
       python gen_maze_map.py 128 123 30
-          # size=128, seed=123, extra_loops=30 (more cycles)
     """
     if len(sys.argv) >= 2:
         size = int(sys.argv[1])
@@ -423,9 +394,9 @@ if __name__ == "__main__":
     grid = generate_maze_map(size=size, seed=seed, extra_loops=extra_loops)
 
     txt_name = f"maze_map_{size}.txt"
-    png_name = f"maze_map_{size}.png"
+    png_name = f"maze_map_{size}.png"  # PNG output disabled
 
     np.savetxt(txt_name, grid, fmt="%d")
     print(f"Saved maze map data to {txt_name}")
 
-    visualize_map(grid, png_name)
+    #visualize_map(grid, png_name)  # PNG output disabled

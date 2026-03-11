@@ -5,13 +5,13 @@
 #include <cstdint>
 
 struct NodeAoS {
-    float   g;
-    float   f;
-    int     parent;
-    uint8_t state; // 0=unvisited,1=open,2=closed
+    float   g;//cost so far
+    float   f;//g+h
+    int     parent;//where last step is
+    uint8_t state; // 0=unvisited,1=in frontier,2=visited and expanded
 
     NodeAoS()
-        : g(std::numeric_limits<float>::infinity()),
+        : g(std::numeric_limits<float>::infinity()),//init to inf (no way to reach yet)
           f(std::numeric_limits<float>::infinity()),
           parent(-1),
           state(0) {}
@@ -19,12 +19,12 @@ struct NodeAoS {
 
 struct AStarStateAoS {
     std::vector<NodeAoS> nodes;
-    explicit AStarStateAoS(int N) : nodes(N) {}
+    explicit AStarStateAoS(int N) : nodes(N) {}//N = wxh
 };
 
 using AStarState = AStarStateAoS;
 
-// accessors
+//helper funcs to swap between AOS SOA
 inline float get_g(const AStarState &s, int idx)       { return s.nodes[idx].g; }
 inline void  set_g(AStarState &s, int idx, float v)    { s.nodes[idx].g = v; }
 
