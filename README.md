@@ -156,6 +156,7 @@ indicating that our optimizations and pruning strategies preserve solution quali
 ## Using the code
 The code is a mess, I have only pushed necessary code to reproduce the test result, including map generation, serial A* and current best implementation of HDA*.
 ### generate a map
+the only meaningful test is maze_map
 ```
 cd map
 activate venv
