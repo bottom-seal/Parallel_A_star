@@ -157,12 +157,25 @@ indicating that our optimizations and pruning strategies preserve solution quali
 The code is a mess, I have only pushed necessary code to reproduce the test result, including map generation, serial A* and current best implementation of HDA*.
 ### generate a map
 ```
+cd map
+activate venv
+python generate_maze_map.py [size of n x n] [seed] [loops]
+eg. python generate_maze_map.py 12800 777 4800
+more loops gives more possible routes from start to goal
 ```
 ### run the serial A*
 ```
+cd serial
+make
+./astar [map_path]
+eg. ./astar ../map/maze_map_12800.txt
 ```
 ### run the HDA*
 ```
+cd eval
+make
+./astar [map_path] -t [thread_num]
+eg. ./astar ../map/maze_map_12800.txt -t 16
 ```
 
 
